@@ -66,6 +66,14 @@ app.use(sanitizeRequest);
 // Connect DB
 connectDB();
 
+// Route rewrite middleware to support requests missing /api prefix (e.g., /admin/login -> /api/admin/login)
+app.use((req, res, next) => {
+  if (!req.path.startsWith("/api") && req.path !== "/") {
+    req.url = `/api${req.url}`;
+  }
+  next();
+});
+
 // API auth guard & auto-deploy for admin write access
 app.use("/api", requireAdminForWrites);
 app.use("/api", autoDeployOnAdminChange);
