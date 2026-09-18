@@ -70,14 +70,27 @@ export const getResumeData = async (req, res) => {
   }
 };
 
+// Helper to ensure Cloudinary URL forces attachment disposition
+const formatDownloadUrl = (url) => {
+  if (url && url.includes("cloudinary.com") && !url.includes("fl_attachment")) {
+    return url.replace("/upload/", "/upload/fl_attachment/");
+  }
+  return url;
+};
+
 // PUT update resume header metadata
 export const updateResumeHeader = async (req, res) => {
   try {
+    const updateData = { ...req.body };
+    if (updateData.downloadLink) {
+      updateData.downloadLink = formatDownloadUrl(updateData.downloadLink);
+    }
+
     let header = await ResumeHeader.findOne();
     if (!header) {
-      header = await ResumeHeader.create(req.body);
+      header = await ResumeHeader.create(updateData);
     } else {
-      header = await ResumeHeader.findOneAndUpdate({}, req.body, {
+      header = await ResumeHeader.findOneAndUpdate({}, updateData, {
         new: true,
         runValidators: true,
       });
@@ -187,7 +200,7 @@ export const uploadResumePdf = async (req, res) => {
       });
     }
 
-    const pdfUrl = req.file.path; // Cloudinary URL set by multer middleware
+    const pdfUrl = formatDownloadUrl(req.file.path); // Cloudinary URL formatted for direct attachment download
 
     // Update ResumeHeader with the new download link
     let header = await ResumeHeader.findOne();
