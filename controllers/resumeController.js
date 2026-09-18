@@ -39,12 +39,23 @@ const initialExperiences = [
   },
 ];
 
+// Helper to ensure clean URL without invalid Cloudinary flags
+const getCleanDownloadUrl = (url) => {
+  if (url && typeof url === "string") {
+    return url.replace("/upload/fl_attachment/", "/upload/").replace("/fl_attachment", "");
+  }
+  return url;
+};
+
 // GET full resume section data (Header + Experiences)
 export const getResumeData = async (req, res) => {
   try {
     let header = await ResumeHeader.findOne();
     if (!header) {
       header = await ResumeHeader.create({});
+    } else if (header.downloadLink && header.downloadLink.includes("fl_attachment")) {
+      header.downloadLink = getCleanDownloadUrl(header.downloadLink);
+      await header.save();
     }
 
     let experiences = await ResumeExperience.find().sort({ order: 1, createdAt: 1 });
@@ -70,20 +81,12 @@ export const getResumeData = async (req, res) => {
   }
 };
 
-// Helper to ensure Cloudinary URL forces attachment disposition
-const formatDownloadUrl = (url) => {
-  if (url && url.includes("cloudinary.com") && !url.includes("fl_attachment")) {
-    return url.replace("/upload/", "/upload/fl_attachment/");
-  }
-  return url;
-};
-
 // PUT update resume header metadata
 export const updateResumeHeader = async (req, res) => {
   try {
     const updateData = { ...req.body };
     if (updateData.downloadLink) {
-      updateData.downloadLink = formatDownloadUrl(updateData.downloadLink);
+      updateData.downloadLink = getCleanDownloadUrl(updateData.downloadLink);
     }
 
     let header = await ResumeHeader.findOne();
@@ -200,7 +203,7 @@ export const uploadResumePdf = async (req, res) => {
       });
     }
 
-    const pdfUrl = formatDownloadUrl(req.file.path); // Cloudinary URL formatted for direct attachment download
+    const pdfUrl = getCleanDownloadUrl(req.file.path);
 
     // Update ResumeHeader with the new download link
     let header = await ResumeHeader.findOne();
