@@ -1,4 +1,5 @@
 import { ResumeHeader, ResumeExperience } from "../models/Resume.js";
+import cloudinary from "../config/cloudinary.js";
 
 const initialExperiences = [
   {
@@ -169,6 +170,44 @@ export const deleteExperience = async (req, res) => {
     });
   } catch (error) {
     console.error("deleteExperience error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// POST upload resume PDF file to Cloudinary and save URL
+export const uploadResumePdf = async (req, res) => {
+  try {
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({
+        success: false,
+        error: "No PDF file uploaded",
+      });
+    }
+
+    const pdfUrl = req.file.path; // Cloudinary URL set by multer middleware
+
+    // Update ResumeHeader with the new download link
+    let header = await ResumeHeader.findOne();
+    if (!header) {
+      header = await ResumeHeader.create({ downloadLink: pdfUrl });
+    } else {
+      header = await ResumeHeader.findOneAndUpdate(
+        {},
+        { downloadLink: pdfUrl },
+        { new: true, runValidators: true }
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Resume PDF uploaded successfully",
+      data: { downloadLink: pdfUrl, header },
+    });
+  } catch (error) {
+    console.error("uploadResumePdf error:", error);
     return res.status(500).json({
       success: false,
       error: error.message,

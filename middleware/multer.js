@@ -11,10 +11,11 @@ const fileFilter = (req, file, cb) => {
      const originalName = file.originalname || "";
      const extension = originalName.split(".").pop()?.toLowerCase() || "";
 
-     const isAllowedMime = mime.startsWith("image/") || mime.startsWith("video/") || mime === "application/octet-stream";
+     const isAllowedMime = mime.startsWith("image/") || mime.startsWith("video/") || mime === "application/octet-stream" || mime === "application/pdf";
      const isAllowedExt = [
           "jpg", "jpeg", "png", "webp", "gif", "svg", "heic", "heif", "avif",
-          "mp4", "mov", "webm", "m4v", "avi", "3gp", "3gpp", "mkv", "ts"
+          "mp4", "mov", "webm", "m4v", "avi", "3gp", "3gpp", "mkv", "ts",
+          "pdf"
      ].includes(extension);
 
      if (isAllowedMime || isAllowedExt) {
