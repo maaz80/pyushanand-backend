@@ -6,12 +6,14 @@ import {
   updateExperience,
   deleteExperience,
   uploadResumePdf,
+  downloadResumePdf,
 } from "../controllers/resumeController.js";
 import upload from "../middleware/multer.js";
 
 const router = express.Router();
 
 router.get("/resume", getResumeData);
+router.get("/resume/download", downloadResumePdf);
 router.put("/resume/header", updateResumeHeader);
 router.post("/resume/upload-pdf", ...upload.single("resumePdf"), uploadResumePdf);
 

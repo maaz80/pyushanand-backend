@@ -1,5 +1,7 @@
 import { ResumeHeader, ResumeExperience } from "../models/Resume.js";
 import cloudinary from "../config/cloudinary.js";
+import https from "https";
+import http from "http";
 
 const initialExperiences = [
   {
@@ -228,5 +230,49 @@ export const uploadResumePdf = async (req, res) => {
       success: false,
       error: error.message,
     });
+  }
+};
+
+// GET proxy download resume PDF
+export const downloadResumePdf = async (req, res) => {
+  try {
+    const header = await ResumeHeader.findOne();
+    const fileUrl = header?.downloadLink;
+
+    if (!fileUrl || fileUrl === "#download-resume" || !fileUrl.startsWith("http")) {
+      return res.status(404).send("No resume uploaded yet.");
+    }
+
+    const client = fileUrl.startsWith("https") ? https : http;
+    const options = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/pdf,application/octet-stream,*/*'
+      }
+    };
+
+    client.get(fileUrl, options, (fileRes) => {
+      if (fileRes.statusCode !== 200) {
+        return res.status(fileRes.statusCode).send("Failed to fetch file from storage.");
+      }
+
+      let filename = "Latest-CV.pdf";
+      const parts = fileUrl.split("/");
+      const lastPart = parts[parts.length - 1];
+      if (lastPart && lastPart.toLowerCase().endsWith(".pdf")) {
+        filename = decodeURIComponent(lastPart);
+      }
+
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.setHeader("Content-Type", "application/pdf");
+
+      fileRes.pipe(res);
+    }).on("error", (err) => {
+      console.error("Error downloading file:", err);
+      res.status(500).send("Error downloading file");
+    });
+  } catch (error) {
+    console.error("downloadResumePdf error:", error);
+    res.status(500).send("Server error");
   }
 };
